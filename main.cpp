@@ -6,12 +6,13 @@
 #include <sstream> //same
 #include <ctime> //for rand
 #include <cstdlib> //same
+#include <limits> //for nearesst neighbor "inifinity"
 using namespace std;
 
 //README 1
-vector<vector<double>> txtPuller()
+vector<vector<double>> txtPuller(string& txtfile)
 {
-    ifstream file("CS170_Small_Data__23.txt");
+    ifstream file(txtfile);
     vector<vector<double>> returnData; //self-explanatory
     string entry; //temp holding string
 
@@ -32,16 +33,63 @@ vector<vector<double>> txtPuller()
     return returnData;
 } 
 
-//see if we can shorten these 
-double leaveOneOutCross(vector<vector<double>> data, set<int> currentSetOfFeatures, int nextOne)
+//README 2; see if we can shorten these
+double leaveOneOutCross(vector<vector<double>>& data, set<int>& currentSetOfFeatures, int nextOne)
 {
-    srand(time(0));
-    //random num stub
-    return rand()%100 + 1;
+    double numberCorrect = 0; //for return accuracy
+
+    //current features we will be testing...
+    set<int> features = currentSetOfFeatures;
+    //...and the next feature we will be testing
+    features.insert(nextOne);
+
+    for (int i=0; i<(data.size()); ++i)
+    {
+        //for each row i, construct new vector with just the features
+        vector<double>& objectToClassify = data[i]; //first col of ith row
+        int objectLabel = data[i][0];
+
+        //arbitrarily large temp value
+        double nearestNeighborDist = numeric_limits<double>::infinity();
+        double nearestNeighborLoc = -1;
+        double nearestNeighborLabel = -1;
+
+        for (int j=0; j<(data.size()); ++j)
+        {
+            if (j == i) continue; //dont compare with self
+
+            double dist=0; //euclidean distance 
+
+            //measure distance for each feature (index) in the objects 
+            for (int feature : features)
+            {
+                //holds value to make math look cleaner/readable
+                double temp = (objectToClassify[feature] - data[j][feature]);
+                dist += (temp * temp);
+            }
+
+            dist = sqrt(dist);
+            
+            if (dist < nearestNeighborDist)
+            {
+                nearestNeighborDist = dist;
+                nearestNeighborLoc = j;
+                nearestNeighborLabel = data[nearestNeighborLoc][0]; 
+            }
+        }
+        /*
+        cout << "Object " << i+1 << " is class " << objectLabel <<'\n';
+        cout << "It's nearest_neighbor is " << nearestNeighborLoc << " which is in class " << nearestNeighborLabel << '\n';
+        */
+
+        //test the resulting accuracy
+        if (objectLabel == nearestNeighborLabel) numberCorrect++;
+    }
+    return (double)numberCorrect / data.size();
 }
 
 //README 2
-void featureSearch(vector<vector<double>> data)
+void featureSearch(vector<vector<double>>& data)
 {
     set<int> currentSetOfFeatures = {};
 
@@ -50,7 +98,7 @@ void featureSearch(vector<vector<double>> data)
     {
         cout << "On the " << i << "th level of the search tree\n";
         int featureToAdd = 0;
-        int bestSoFar = 0;
+        double bestSoFar = -1;
         
         for (int j=0; j<(data[0].size()-1); ++j)
         {   
@@ -59,7 +107,7 @@ void featureSearch(vector<vector<double>> data)
             {
                 cout <<"--Considering adding the " << j << "th feature\n";
                 double accuracy = leaveOneOutCross(data, currentSetOfFeatures, j+1);
-
+                cout << accuracy << '\n';
                 if (accuracy > bestSoFar)
                 {
                     bestSoFar = accuracy;
@@ -76,7 +124,10 @@ void featureSearch(vector<vector<double>> data)
 int main()
 {
     //stuff
-    vector<vector<double>> testdata = txtPuller();
+    string filename{};
+    cout << "Enter file name: ";
+    cin >> filename;
+    vector<vector<double>> testdata = txtPuller(filename);
     featureSearch(testdata);
     return 0;
 }
