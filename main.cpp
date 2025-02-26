@@ -33,7 +33,7 @@ vector<vector<double>> txtPuller(string& txtfile)
     return returnData;
 } 
 
-//README 2; see if we can shorten these
+//README 2/3; see if we can shorten these
 double leaveOneOutCross(vector<vector<double>>& data, set<int>& currentSetOfFeatures, int nextOne)
 {
     double numberCorrect = 0; //for return accuracy
@@ -91,12 +91,14 @@ double leaveOneOutCross(vector<vector<double>>& data, set<int>& currentSetOfFeat
 //README 2
 void featureSearch(vector<vector<double>>& data)
 {
-    set<int> currentSetOfFeatures = {};
+    set<int> bestCombo = {}; //track the best combination of features
+    double bestComboAccuracy = -1.0; //Best accuracy we can get
+    set<int> currentSetOfFeatures = {}; //the current combo were working on
 
     //data[0]-1 is number of columns -1 bc class label
     for (int i=0; i<(data[0].size()-1); ++i)
     {
-        cout << "On the " << i << "th level of the search tree\n";
+        cout << "On the " << i+1 << "th level of the search tree\n";
         int featureToAdd = 0;
         double bestSoFar = -1;
         
@@ -105,9 +107,15 @@ void featureSearch(vector<vector<double>>& data)
             //did the iterator make it all the way to the end w/out finding?
             if (currentSetOfFeatures.find(j) == currentSetOfFeatures.end())
             {
-                cout <<"--Considering adding the " << j << "th feature\n";
+                //cout <<"--Considering adding the " << j << "th feature\n";
                 double accuracy = leaveOneOutCross(data, currentSetOfFeatures, j+1);
-                cout << accuracy << '\n';
+                cout << "\tUsing feature(s) { ";
+                for (auto feature : currentSetOfFeatures)
+                {
+                    cout << feature+1 << ' ';
+                }
+                cout << j+1 << " } accuracy is " << accuracy*100 << "%\n";
+
                 if (accuracy > bestSoFar)
                 {
                     bestSoFar = accuracy;
@@ -116,9 +124,22 @@ void featureSearch(vector<vector<double>>& data)
             }
         }
         currentSetOfFeatures.insert(featureToAdd);
-        cout << "On level " << i << ", added feature " << featureToAdd << " to the current set\n";
-        cout << "Best Accuracy we got: " << bestSoFar << '\n';
+        //cout << "On level " << i << ", added feature " << featureToAdd << " to the current set\n";
+        //cout << "Best Accuracy we got: " << bestSoFar << '\n';
+        cout << "Feature set {" << featureToAdd+1 <<"} was best, accuracy is " << bestSoFar*100 << "%\n";
+        if (bestSoFar >= bestComboAccuracy)
+        {
+            bestComboAccuracy = bestSoFar;
+            bestCombo = currentSetOfFeatures;
+        }
     }
+
+    cout << "All done! The best feature subset is { ";
+    for (auto feature : bestCombo)
+    {
+        cout << feature+1 << ' ';
+    }
+    cout << "} which has an accuracy of " << bestComboAccuracy*100 << "%\n";
 }
 
 int main()
