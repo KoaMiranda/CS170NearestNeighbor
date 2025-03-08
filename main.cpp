@@ -47,7 +47,7 @@ double leaveOneOutCross(vector<vector<double>>& data, set<int>& currentSetOfFeat
     {
         //for each row i, construct new vector with just the features
         vector<double>& objectToClassify = data[i]; //first col of ith row
-        int objectLabel = data[i][0];
+        int objectLabel = data[i][0]; //the actual correct class based on txt file
 
         //arbitrarily large temp value
         double nearestNeighborDist = numeric_limits<double>::infinity();
@@ -95,10 +95,24 @@ void featureSearchForward(vector<vector<double>>& data)
     double bestComboAccuracy = -1.0; //Best accuracy we can get
     set<int> currentSetOfFeatures = {}; //the current combo were working on
 
+    for (int i=0; i < data[0].size()-1; ++i)
+    {
+        currentSetOfFeatures.insert(i); //inserting them from txt
+    }
+    
+    //leaveOneOut checks for -1, doesn't modify currentset. Baseline accuracy
+    bestCombo = currentSetOfFeatures;
+    bestComboAccuracy = leaveOneOutCross(data, bestCombo, -1);
+
+    cout << "Running nearest neighbor with all 4 features, using 'leave-one-out' evaluation, I get an accuracy of" << bestComboAccuracy*100 << "%\n\n";
+
+    currentSetOfFeatures = {};
+
+    cout << "Beginning Search.\n\n";
     //data[0]-1 is number of columns -1 bc class label
     for (int i=0; i<(data[0].size()-1); ++i)
     {
-        cout << "On the " << i+1 << "th level of the search tree\n";
+        //cout << "On the " << i+1 << "th level of the search tree\n";
         int featureToAdd = 0;
         double bestSoFar = -1;
         
@@ -126,16 +140,21 @@ void featureSearchForward(vector<vector<double>>& data)
         currentSetOfFeatures.insert(featureToAdd);
         //cout << "On level " << i << ", added feature " << featureToAdd << " to the current set\n";
         //cout << "Best Accuracy we got: " << bestSoFar << '\n';
-        cout << "Feature set { " << featureToAdd+1 <<" } was best, accuracy is " << bestSoFar*100 << "%\n";
-        if (bestSoFar == bestComboAccuracy) {} //if were already at 100% don't add uneccessary features
-        else if (bestSoFar >= bestComboAccuracy)
+
+        cout << '\n';
+        if (bestSoFar < bestComboAccuracy)
+        {
+            cout << "(Warning, Accuracy has decreased! Continue search in case of local maxima)\n";
+        } 
+        else if (bestSoFar > bestComboAccuracy) //this controls more than two features in results.
         {
             bestComboAccuracy = bestSoFar;
             bestCombo = currentSetOfFeatures;
         }
+        cout << "Feature set { " << featureToAdd+1 <<" } was best, accuracy is " << bestSoFar*100 << "%\n";
     }
 
-    cout << "All done! The best feature subset is { ";
+    cout << "\nFinished Search!! The best feature subset is { ";
     for (auto feature : bestCombo)
     {
         cout << feature+1 << ' ';
@@ -158,11 +177,11 @@ void featureSearchBackwards(vector<vector<double>>& data)
     bestCombo = currentSetOfFeatures;
     bestComboAccuracy = leaveOneOutCross(data, bestCombo, -1);
 
-    cout << "Starting with all features considered, accuracy is " << bestComboAccuracy*100 << "%\n";
-
+    cout << "Running nearest neighbor with all 4 features, using 'leave-one-out' evaluation, I get an accuracy of" << bestComboAccuracy*100 << "%\n\n";
+    cout << "Beginning search.\n\n";
     for (int i=0; i<(data[0].size()-1); ++i)
     {
-        cout << "On the " << i+1 << "th level of the search tree\n";
+        //cout << "On the " << i+1 << "th level of the search tree\n";
         int featureToRemove = -1; //-1 instead of 0 cause we might accidentally remove 0
         double bestSoFar = -1;
         
@@ -187,9 +206,14 @@ void featureSearchBackwards(vector<vector<double>>& data)
                 featureToRemove = j;
             }
         }
+        cout << '\n';
         if (featureToRemove != -1)
         {
             currentSetOfFeatures.erase(featureToRemove); //get rid of the worst feature, submit new reduced set for next loop
+            if (bestSoFar < bestComboAccuracy)
+            {
+                cout << "(Warning, Accuracy has decreased! Continue search in case of local maxima)\n";
+            }
             cout << "Feature { " << featureToRemove+1 << " } removed, accuracy is now " << bestSoFar*100 << "%\n";
 
             if (bestSoFar >= bestComboAccuracy) //Again '>' OR '=' to ensure smallest subset
@@ -199,7 +223,7 @@ void featureSearchBackwards(vector<vector<double>>& data)
             }
         }
     }
-    cout << "All done! The best feature subset is { ";
+    cout << "Finished search!! The best feature subset is { ";
     for (auto feature : bestCombo)
     {
         cout << feature+1 << ' ';
@@ -213,7 +237,10 @@ int main()
     int userChoice{};
     string fileName = "";
 
+    cout << "Welcome to Koa Miranda's Feature Selection Algorithm.\n";
     cout << "Please choose from the following: \n";
+    cout << "\t1) Forward Selection\n\t2) Backwards Elimination\n\n";
+    cin >> userChoice;
     cout << "\t1) Small Data\n\t2) Large Data\n\t3) Enter a file name\n";
     cin >> fileChoice;
     if (fileChoice== 1) fileName="CS170_Small_Data__24.txt";
@@ -224,11 +251,7 @@ int main()
         cin >> fileName;
     }
     vector<vector<double>> testdata = txtPuller(fileName);
-    cout << "File has " << testdata.size() << " number of entries\n";
-    cout << "Each entry has " << testdata[0].size()-1 << " number of features\n";
-
-    cout << "\t1) Forward Selection\n\t2) Backwards Elimination\n";
-    cin >> userChoice;
+    cout << "\nThis dataset has " << testdata[0].size()-1 << " features (not including the class attribute), with " << testdata.size() << " instances.\n\n\n";
 
     if (userChoice == 1) featureSearchForward(testdata);
     else if (userChoice == 2) featureSearchBackwards(testdata);
