@@ -7,6 +7,8 @@
 #include <ctime> //for rand
 #include <cstdlib> //same
 #include <limits> //for nearesst neighbor "inifinity"
+#include <chrono> //for computational effort measurement
+
 using namespace std;
 
 //README 1
@@ -69,7 +71,6 @@ double leaveOneOutCross(vector<vector<double>>& data, set<int>& currentSetOfFeat
             }
 
             dist = sqrt(dist);
-            
             if (dist < nearestNeighborDist)
             {
                 nearestNeighborDist = dist;
@@ -94,41 +95,36 @@ void featureSearchForward(vector<vector<double>>& data)
     set<int> bestCombo = {}; //track the best combination of features
     double bestComboAccuracy = -1.0; //Best accuracy we can get
     set<int> currentSetOfFeatures = {}; //the current combo were working on
-
-    for (int i=0; i < data[0].size()-1; ++i)
-    {
-        currentSetOfFeatures.insert(i); //inserting them from txt
-    }
     
     //leaveOneOut checks for -1, doesn't modify currentset. Baseline accuracy
-    bestCombo = currentSetOfFeatures;
     bestComboAccuracy = leaveOneOutCross(data, bestCombo, -1);
 
-    cout << "Running nearest neighbor with all 4 features, using 'leave-one-out' evaluation, I get an accuracy of" << bestComboAccuracy*100 << "%\n\n";
+    cout << "Running nearest neighbor with no features, using 'leave-one-out' evaluation, I get a default rate accuracy of " << bestComboAccuracy*100 << "%\n\n";
 
     currentSetOfFeatures = {};
+    bestComboAccuracy = -1.0;
 
     cout << "Beginning Search.\n\n";
     //data[0]-1 is number of columns -1 bc class label
-    for (int i=0; i<(data[0].size()-1); ++i)
+    for (int i=1; i < (data[0].size()); ++i)
     {
         //cout << "On the " << i+1 << "th level of the search tree\n";
-        int featureToAdd = 0;
+        int featureToAdd = -1;
         double bestSoFar = -1;
         
-        for (int j=0; j<(data[0].size()-1); ++j)
+        for (int j=1; j < (data[0].size()); ++j)
         {   
             //did the iterator make it all the way to the end w/out finding?
             if (currentSetOfFeatures.find(j) == currentSetOfFeatures.end())
             {
                 //cout <<"--Considering adding the " << j << "th feature\n";
-                double accuracy = leaveOneOutCross(data, currentSetOfFeatures, j+1);
+                double accuracy = leaveOneOutCross(data, currentSetOfFeatures, j); //j changed for 1 based index!!!
                 cout << "\tUsing feature(s) { ";
                 for (auto feature : currentSetOfFeatures)
                 {
-                    cout << feature+1 << ' ';
+                    cout << feature << ' ';
                 }
-                cout << j+1 << " } accuracy is " << accuracy*100 << "%\n";
+                cout << j << " } accuracy is " << accuracy*100 << "%\n";
 
                 if (accuracy > bestSoFar)
                 {
@@ -151,13 +147,13 @@ void featureSearchForward(vector<vector<double>>& data)
             bestComboAccuracy = bestSoFar;
             bestCombo = currentSetOfFeatures;
         }
-        cout << "Feature set { " << featureToAdd+1 <<" } was best, accuracy is " << bestSoFar*100 << "%\n";
+        cout << "Feature set { " << featureToAdd <<" } was best, accuracy is " << bestSoFar*100 << "%\n\n";
     }
 
-    cout << "\nFinished Search!! The best feature subset is { ";
+    cout << "Finished Search!! The best feature subset is { ";
     for (auto feature : bestCombo)
     {
-        cout << feature+1 << ' ';
+        cout << feature << ' ';
     }
     cout << "} which has an accuracy of " << bestComboAccuracy*100 << "%\n";
 }
@@ -168,7 +164,7 @@ void featureSearchBackwards(vector<vector<double>>& data)
     set<int> bestCombo;
     double bestComboAccuracy = -1.0;
     set<int> currentSetOfFeatures; //now start with all possible features in currentSet
-    for (int i=0; i < data[0].size()-1; ++i)
+    for (int i=1; i < data[0].size(); ++i) //changed to 1 index!!!
     {
         currentSetOfFeatures.insert(i); //inserting them from txt
     }
@@ -177,44 +173,51 @@ void featureSearchBackwards(vector<vector<double>>& data)
     bestCombo = currentSetOfFeatures;
     bestComboAccuracy = leaveOneOutCross(data, bestCombo, -1);
 
-    cout << "Running nearest neighbor with all 4 features, using 'leave-one-out' evaluation, I get an accuracy of" << bestComboAccuracy*100 << "%\n\n";
+    cout << "Running nearest neighbor with all " << data[0].size()-1 << " features, using 'leave-one-out' evaluation, I get an accuracy of " << bestComboAccuracy*100 << "%\n\n";
     cout << "Beginning search.\n\n";
-    for (int i=0; i<(data[0].size()-1); ++i)
+    for (int i=1; i < (data[0].size()); ++i) //changed to 1 index!!!
     {
         //cout << "On the " << i+1 << "th level of the search tree\n";
         int featureToRemove = -1; //-1 instead of 0 cause we might accidentally remove 0
         double bestSoFar = -1;
         
-        for (int j=0; j<(currentSetOfFeatures.size()-1); ++j)
+        for (int feature : currentSetOfFeatures) //changed to 1 index!!!
         {   
             //try all features, figure out which one is the worst, -1 means dont change the current set
             set<int> reducedSet = currentSetOfFeatures; //self explanatory
-            reducedSet.erase(j); //try it without this one
+            reducedSet.erase(feature); //try it without this one
 
             //find the accuracy of the reduced set and print it
             double accuracy = leaveOneOutCross(data, reducedSet, -1);
             cout << "\tUsing feature(s) { ";
-            for (auto feature : reducedSet) 
+            if (reducedSet.size()==0) 
             {
-                cout << feature+1 << ' ';
+                cout << feature << " } accuracy is " << accuracy*100 << "%\n";
             }
-            cout << j+1 << " } accuracy is " << accuracy*100 << "%\n";
+            else 
+            {
+                for (auto features : reducedSet) 
+                {
+                    cout << features << ' '; //changed to 1 index!!!
+                }
+                cout << "} accuracy is " << accuracy*100 << "%\n";
+            }
 
             if (accuracy >= bestSoFar) //Greater than OR equal to in order to guarantee a feature gets removed every tree level
             {
                 bestSoFar = accuracy;
-                featureToRemove = j;
+                featureToRemove = feature;
             }
         }
         cout << '\n';
-        if (featureToRemove != -1)
+        if (featureToRemove != -1 && currentSetOfFeatures.find(featureToRemove) != currentSetOfFeatures.end());
         {
             currentSetOfFeatures.erase(featureToRemove); //get rid of the worst feature, submit new reduced set for next loop
             if (bestSoFar < bestComboAccuracy)
             {
                 cout << "(Warning, Accuracy has decreased! Continue search in case of local maxima)\n";
             }
-            cout << "Feature { " << featureToRemove+1 << " } removed, accuracy is now " << bestSoFar*100 << "%\n";
+            cout << "Feature { " << featureToRemove << " } removed, accuracy is now " << bestSoFar*100 << "%\n\n"; //changed to 1 index!!!
 
             if (bestSoFar >= bestComboAccuracy) //Again '>' OR '=' to ensure smallest subset
             {
@@ -226,7 +229,7 @@ void featureSearchBackwards(vector<vector<double>>& data)
     cout << "Finished search!! The best feature subset is { ";
     for (auto feature : bestCombo)
     {
-        cout << feature+1 << ' ';
+        cout << feature << ' '; //changed to 1 index!!!
     }
     cout << "} which has an accuracy of " << bestComboAccuracy*100 << "%\n";
 }
@@ -243,8 +246,8 @@ int main()
     cin >> userChoice;
     cout << "\t1) Small Data\n\t2) Large Data\n\t3) Enter a file name\n";
     cin >> fileChoice;
-    if (fileChoice== 1) fileName="CS170_Small_Data__24.txt";
-    else if (fileChoice == 2) fileName="CS170_Large_Data__109.txt";
+    if (fileChoice== 1) fileName="CS170_Small_Data__109.txt";
+    else if (fileChoice == 2) fileName="CS170_Large_Data__24.txt";
     else if (fileChoice == 3) 
     {
         cout << "File name: ";
@@ -253,7 +256,11 @@ int main()
     vector<vector<double>> testdata = txtPuller(fileName);
     cout << "\nThis dataset has " << testdata[0].size()-1 << " features (not including the class attribute), with " << testdata.size() << " instances.\n\n\n";
 
+    auto start = chrono::high_resolution_clock::now();
     if (userChoice == 1) featureSearchForward(testdata);
     else if (userChoice == 2) featureSearchBackwards(testdata);
+    auto end = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end-start);
+    cout << "Time: " << duration.count() << " miliseconds" <<'\n';
     return 0;
 }
