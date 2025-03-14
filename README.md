@@ -21,3 +21,5 @@ THEN when looking into this I realized ALL my for loops were 0 indexed and that 
 8. Aaaaaaaaand I was using small data 24 and big data 109 instead of small 109 and big 24... Remaking my graphs and rewriting the report now.
 
 9. Output formatting with backwards elim. Was showing all 6 features in first level of search and nothing in the last level. This was because of the way I made my cout statements for forwards. Fixed now.
+
+10. Finished up after consulting with Dr. Keogh through up. Reassured me that I am on the right track. Added timer for report measurements. Think I'm finally done!
